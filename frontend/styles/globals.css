@@ -1,0 +1,7 @@
+/* 你可以在这里定义全局样式 */
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+}
+@import url('leaflet/dist/leaflet.css');
+@import url('leaflet-draw/dist/leaflet.draw.css');

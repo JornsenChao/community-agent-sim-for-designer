@@ -1,0 +1,59 @@
+# ========== 1. Node / React / Next.js 忽略 ==========
+
+# node_modules
+node_modules/
+.next/
+out/
+npm-debug.log
+yarn-error.log
+pnpm-lock.yaml
+*.log
+*.lock
+
+# ========== 2. Python 忽略 ==========
+# 虚拟环境
+venv/
+.venv/
+**/__pycache__/
+*.py[cod]
+*.pyo
+*.egg
+*.egg-info/
+cache/
+dist/
+build/
+poetry.lock
+Pipfile.lock
+backend/config.py
+
+# ========== 3. 环境变量 / 敏感信息 ==========
+.env
+.env.*
+
+# ========== 4. IDE / OS 特定文件 ==========
+# Visual Studio Code
+.vscode/
+*.code-workspace
+.DS_Store
+.AppleDouble
+.LSOverride
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# ========== 5. GIS 大文件 / 数据集 忽略 ==========
+# 忽略 backend/data/tl_2024_us_county 下的所有实质文件
+# 仅保留占位文件 (.gitkeep / .gitignore) 用于保留文件夹结构
+backend/data/tl_2024_us_county/
+!backend/data/tl_2024_us_county/.gitkeep
+
+# ========== 6. 其他可选忽略 (示例) ==========
+
+# 如果有测试覆盖率目录
+# coverage/
+
+# 如果有 Dockerfile/容器产物
+# docker-compose.override.yml
+# *.docker
+
+# 你可以视情况再添加自定义规则
