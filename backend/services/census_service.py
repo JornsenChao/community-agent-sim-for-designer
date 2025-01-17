@@ -1,16 +1,16 @@
+# services/census_service.py
+
 import requests
+import geopandas as gpd
+from shapely.geometry import box
 from config import config
-import shapely
 from .us_counties import counties_gdf
-# US Census ACS 5-year 2020 as an example
-# doc: https://www.census.gov/data/developers/data-sets/acs-5year.html
+
 CENSUS_BASE_URL = "https://api.census.gov/data/2020/acs/acs5"
 
-def get_county_population(state_fips, county_fips):
+def _get_county_population(state_fips, county_fips):
     """
-    根据州代码(state_fips) + 县代码(county_fips)，
-    调用Census Bureau API获取该county的人口总数
-    B01003_001E = total population 
+    调用 Census Bureau API 获取某county人口 (B01003_001E)
     """
     params = {
         "get": "NAME,B01003_001E",
@@ -25,32 +25,94 @@ def get_county_population(state_fips, county_fips):
             row = data[1]
             county_name = row[0]
             population = int(row[1])
-            return {
-                "countyName": county_name,
-                "population": population
-            }
+            return {"countyName": county_name, "population": population}
         else:
-            return {"error": "No county data found from Census."}
+            return {"countyName": None, "population": 0}
     except Exception as e:
-        return {"error": f"Census API failed: {str(e)}"}
+        print("Census API error:", e)
+        return {"countyName": None, "population": 0}
 
-def get_demographic_for_bbox(bbox):
-    # TODO: 你可以写一个逻辑: 根据bbox中心点 -> Reverse geocode -> 得到County fips
-    # 下面纯硬编码, 假设返回 state_fips=06 (加州), county_fips=001 (Alameda)
-    # 真实生产中要做: 1) reverse geocode -> get (state_fips, county_fips) 2) get_county_population
-    # state_fips = "06"
-    # county_fips = "001"
-    # result = get_county_population(state_fips, county_fips)
-    # return result
-    poly = shapely.geometry.box(*bbox)  # (minx,miny, maxx,maxy)
-    center = poly.centroid
+def get_demographic_for_bbox(minx, miny, maxx, maxy, method="weighted"):
+    """
+    在用户选的 bounding box 上:
+    1) 与 counties_gdf 做叠加, 找到所有落在bbox内的县
+    2) 分别查人口, 然后根据 area 占比加权合并(或返回列表)
 
-    # counties_gdf = 预先加载的 County shapefile (带STATEFP, COUNTYFP)
-    matched = counties_gdf[counties_gdf.geometry.contains(center)]
-    if len(matched) == 1:
-        row = matched.iloc[0]
-        state_fips = row['STATEFP']
-        county_fips = row['COUNTYFP']
-        return get_county_population(state_fips, county_fips)
-    else:
-        return {"error": "无法匹配到唯一county"}
+    :param method: "weighted" => 返回一个总人口(加权),
+                   "largest" => 只返回面积最大的那个county,
+                   "list" => 返回一个列表列出每个county info
+    """
+
+    region_polygon = box(minx, miny, maxx, maxy)
+
+    # 构建 region_gdf
+    region_gdf = gpd.GeoDataFrame(
+        {'id': [1]},
+        geometry=[region_polygon],
+        crs="EPSG:4326"
+    )
+
+    # 做 overlay intersection
+    intersected = gpd.overlay(counties_gdf, region_gdf, how='intersection')
+    if len(intersected) == 0:
+        return {
+            "info": "No county found for bounding box",
+            "totalPopulation": 0
+        }
+
+    # 计算每个碎片面积
+    # shapely 2.0 area => degrees^2 并不是真实m^2, 
+    #  若要准确面积, 先 to_crs一个投影坐标(如 EPSG:5070 for US).
+    # 这里演示就用 degrees^2, 不那么准确
+    intersected["area"] = intersected.geometry.area
+
+    # "list" 模式 => 直接逐个 county_tract
+    # "weighted" => 先按 county 分组, 计算总 area
+    #  code below:
+    group_cols = ["STATEFP", "COUNTYFP"]
+    grouped = intersected.groupby(group_cols)["area"].sum().reset_index()
+    total_area = grouped["area"].sum()
+
+    # fetch census population for each county, do weighted
+    results = []
+    for idx, row in grouped.iterrows():
+        st = row["STATEFP"]
+        ct = row["COUNTYFP"]
+        area_part = row["area"]
+        popinfo = _get_county_population(st, ct)  # { countyName, population }
+        portion = (area_part / total_area) if total_area > 0 else 0
+        results.append({
+            "state_fips": st,
+            "county_fips": ct,
+            "countyName": popinfo["countyName"],
+            "population": popinfo["population"],
+            "areaPart": area_part,
+            "areaRatio": portion
+        })
+
+    if method == "weighted":
+        # 做加权人口
+        weighted_population = 0
+        # countyNameList = []
+        for item in results:
+            weighted_population += item["population"] * item["areaRatio"]
+            # countyNameList.append(item["countyName"])
+        return {
+            "method": "weighted",
+            "estimatedPopulation": int(weighted_population),
+            "details": results
+        }
+    elif method == "largest":
+        # 找出 areaRatio 最大的一条
+        largest_row = max(results, key=lambda x: x["areaRatio"])
+        return {
+            "method": "largest",
+            "dominantCountyName": largest_row["countyName"],
+            "population": largest_row["population"],
+            "details": results
+        }
+    else:  # "list"
+        return {
+            "method": "list",
+            "counties": results
+        }
