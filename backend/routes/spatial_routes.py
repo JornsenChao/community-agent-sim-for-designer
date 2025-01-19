@@ -62,23 +62,30 @@ def fetch_spatial_data():
             geom_obj = row.geometry
             if geom_obj is None or geom_obj.is_empty:
                 continue
-            if isinstance(geom_obj, (Polygon, MultiPolygon)):
-                building_type = row.get('building', None)
-                osm_id = row.get('osmid', None)  # sometimes is int/list
-                if isinstance(osm_id, list):
-                    # handle if osm_id is [123,456]
-                    osm_id = ','.join(str(x) for x in osm_id)
-                bname = row.get('name', None)
+            if not isinstance(geom_obj, (Polygon, MultiPolygon)):
+                # 跳过非多边形
+                continue
 
-                geom_wkb = from_shape(geom_obj, srid=4326)
-                building = OSMBuilding(
-                    bounding_box=bbox_str,
-                    osm_id=str(osm_id) if osm_id else None,
-                    name=bname if isinstance(bname, str) else None,
-                    building_type=building_type if isinstance(building_type, str) else None,
-                    geom=geom_wkb
-                )
-                db.session.add(building)
+            # 如果是Polygon则转换成MultiPolygon
+            if isinstance(geom_obj, Polygon):
+                geom_obj = MultiPolygon([geom_obj])
+
+            building_type = row.get('building', None)
+            osm_id = row.get('osmid', None)
+            if isinstance(osm_id, list):
+                osm_id = ','.join(str(x) for x in osm_id)
+
+            bname = row.get('name', None)
+
+            geom_wkb = from_shape(geom_obj, srid=4326)
+            building = OSMBuilding(
+                bounding_box=bbox_str,
+                osm_id=str(osm_id) if osm_id else None,
+                name=bname if isinstance(bname, str) else None,
+                building_type=building_type if isinstance(building_type, str) else None,
+                geom=geom_wkb
+            )
+            db.session.add(building)
 
         # Insert new road data
         for idx, row in edges_gdf.iterrows():
@@ -86,44 +93,46 @@ def fetch_spatial_data():
             if geom_obj is None or geom_obj.is_empty:
                 continue
 
-            if isinstance(geom_obj, (LineString, MultiLineString)):
-                osm_id = row.get('osmid', None)
-                if isinstance(osm_id, list):
-                    osm_id = ','.join(str(x) for x in osm_id)
+            # 如果是LineString则转换成MultiLineString
+            if isinstance(geom_obj, LineString):
+                geom_obj = MultiLineString([geom_obj])
+            if not isinstance(geom_obj, (LineString, MultiLineString)):
+                # 跳过非线要素
+                continue
 
-                rd_name = row.get('name', None)
-                rd_type = row.get('highway', None)
-                rd_oneway = row.get('oneway', False)
-                # parse lanes
-                lanes_val = row.get('lanes', None)
-                rd_lanes = None
-                if lanes_val is not None:
-                    if isinstance(lanes_val, list):
-                        # e.g. [3,4]
-                        try:
-                            rd_lanes = sum(lanes_val) / len(lanes_val)
-                        except:
-                            rd_lanes = None
-                    elif isinstance(lanes_val, (int,float)):
+            osm_id = row.get('osmid', None)
+            if isinstance(osm_id, list):
+                osm_id = ','.join(str(x) for x in osm_id)
+
+            rd_name = row.get('name', None)
+            rd_type = row.get('highway', None)
+            rd_oneway = row.get('oneway', False)
+
+            lanes_val = row.get('lanes', None)
+            rd_lanes = None
+            if lanes_val is not None:
+                if isinstance(lanes_val, list):
+                    try:
+                        rd_lanes = sum(map(float, lanes_val)) / len(lanes_val)
+                    except:
+                        rd_lanes = None
+                else:
+                    try:
                         rd_lanes = float(lanes_val)
-                    elif isinstance(lanes_val, str):
-                        try:
-                            rd_lanes = float(lanes_val)
-                        except:
-                            rd_lanes = None
+                    except:
+                        rd_lanes = None
 
-                geom_wkb = from_shape(geom_obj, srid=4326)
-                road = OSMRoad(
-                    bounding_box=bbox_str,
-                    osm_id=str(osm_id) if osm_id else None,
-                    name=rd_name if isinstance(rd_name, str) else None,
-                    road_type=rd_type if isinstance(rd_type, str) else None,
-                    oneway=bool(rd_oneway),
-                    lanes=rd_lanes,
-                    geom=geom_wkb
-                )
-                db.session.add(road)
-
+            geom_wkb = from_shape(geom_obj, srid=4326)
+            road = OSMRoad(
+                bounding_box=bbox_str,
+                osm_id=str(osm_id) if osm_id else None,
+                name=rd_name if isinstance(rd_name, str) else None,
+                road_type=rd_type if isinstance(rd_type, str) else None,
+                oneway=bool(rd_oneway),
+                lanes=rd_lanes,
+                geom=geom_wkb
+            )
+            db.session.add(road)
 
         db.session.commit()
 

@@ -26,7 +26,7 @@ class OSMBuilding(db.Model):
     osm_id = db.Column(db.String(200), nullable=True)      # e.g. "way/123456"
     name = db.Column(db.String(200), nullable=True)       # building name if any
     building_type = db.Column(db.String(100), nullable=True)
-    geom = db.Column(Geometry('POLYGON', srid=4326), nullable=False)
+    geom = db.Column(Geometry('MULTIPOLYGON', srid=4326), nullable=False)
 
 class OSMRoad(db.Model):
     __tablename__ = 'osm_roads'
@@ -37,4 +37,4 @@ class OSMRoad(db.Model):
     road_type = db.Column(db.String(100), nullable=True)  # from highway=...
     oneway = db.Column(db.Boolean, nullable=True)
     lanes = db.Column(db.Float, nullable=True)  # if numeric
-    geom = db.Column(Geometry('LINESTRING', srid=4326), nullable=False)
+    geom = db.Column(Geometry('MULTILINESTRING', srid=4326), nullable=False)
