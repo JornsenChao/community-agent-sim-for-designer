@@ -1,0 +1,39 @@
+# version: '3.8'
+services:
+  db:
+    image: postgis/postgis:15-3.3
+    container_name: my_postgis
+    restart: always
+    environment:
+      # 这会创建一个数据库 mydb，用户名myuser，密码mypass。
+      POSTGRES_USER: 'myuser'
+      POSTGRES_PASSWORD: 'mypassword'
+      POSTGRES_DB: 'mydb'
+    ports:
+      # 原来是 5432:5432. 容器里依旧使用 5432，但本地访问时变成 localhost:5433
+      - '5433:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      # 一个叫 postgres_data 的Docker volume 来保存数据库文件
+
+  web:
+    # 用 ./backend/Dockerfile 文件来构建 Flask 容器。映射端口 5000:5000 到外面。
+    build: ./backend
+    container_name: my_flask
+    restart: always
+    ports:
+      - '5000:5000'
+    depends_on:
+      # 要等数据库容器就绪后再启动 web
+      - db
+    environment:
+      IS_DOCKER: '1'
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: 'mydb'
+      DB_USER: 'myuser'
+      DB_PASS: 'mypassword'
+
+volumes:
+  # 定义一个名为 postgres_data 的 Docker挂载点，用于持久化数据库内容。
+  postgres_data:
