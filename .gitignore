@@ -40,6 +40,7 @@ backend/config.py
 Thumbs.db
 ehthumbs.db
 Desktop.ini
+mynotes.md
 
 # ========== 5. GIS 大文件 / 数据集 忽略 ==========
 # 忽略 backend/data/tl_2024_us_county 下的所有实质文件

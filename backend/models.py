@@ -18,3 +18,23 @@ class GeoFeature(db.Model):
 
     def __repr__(self):
         return f"<GeoFeature id={self.id} name={self.name}>"
+
+class OSMBuilding(db.Model):
+    """
+    用于存储 OSMnx 获取到的建筑
+    """
+    __tablename__ = 'osm_buildings'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    bounding_box = db.Column(db.String(200), nullable=False)  # 用 "minx,miny,maxx,maxy" 记录
+    building_type = db.Column(db.String(100), nullable=True)
+    geom = db.Column(Geometry('POLYGON', srid=4326), nullable=False)
+
+class OSMRoad(db.Model):
+    """
+    用于存储 OSMnx 获取到的道路
+    """
+    __tablename__ = 'osm_roads'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    bounding_box = db.Column(db.String(200), nullable=False)
+    road_type = db.Column(db.String(100), nullable=True)
+    geom = db.Column(Geometry('LINESTRING', srid=4326), nullable=False)
