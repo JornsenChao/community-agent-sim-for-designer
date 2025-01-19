@@ -29,10 +29,23 @@ def fetch_spatial_data():
         # roads
         G = ox.graph_from_polygon(region_polygon, network_type='drive')
         edges_gdf = ox.graph_to_gdfs(G, nodes=False, edges=True)
-
+        # print (edges_gdf.columns)
+        # print("edges_gdf.columns: 'osmid', 'oneway', 'lanes', 'name', 'highway', 'maxspeed'")
+        # print(edges_gdf[['osmid', 'oneway', 'lanes', 'name', 'highway', 'maxspeed']].head(50))
+        # print(edges_gdf[['osmid', 'oneway', 'lanes', 'name', 'highway', 'maxspeed']].tail(50))
+        # print("edges_gdf.columns: 'reversed','length', 'geometry', 'ref', 'access'")
+        # print(edges_gdf[['reversed','length', 'geometry', 'ref', 'access']].head(50))
         # buildings
         tags = {"building": True}
         buildings_gdf = ox.geometries_from_polygon(region_polygon, tags)
+        # print(list(buildings_gdf.columns))
+        # print (buildings_gdf.columns[:20])
+        # print (buildings_gdf.columns[21:40])
+        # print (buildings_gdf.columns[41:60])
+        # print (buildings_gdf.columns[61:80])
+        # print (buildings_gdf.columns[81:100])
+        # print (buildings_gdf.columns[101:120])
+        # print(buildings_gdf.head(5))
 
         # summarize
         building_count = len(buildings_gdf)
@@ -49,13 +62,20 @@ def fetch_spatial_data():
             geom_obj = row.geometry
             if geom_obj is None or geom_obj.is_empty:
                 continue
-            # building_type = row.get('building', '') # optional
-            # ensure polygon
             if isinstance(geom_obj, (Polygon, MultiPolygon)):
-                geom_wkb = from_shape(geom_obj, srid=4326)  # 关键：geoalchemy2 from_shape
+                building_type = row.get('building', None)
+                osm_id = row.get('osmid', None)  # sometimes is int/list
+                if isinstance(osm_id, list):
+                    # handle if osm_id is [123,456]
+                    osm_id = ','.join(str(x) for x in osm_id)
+                bname = row.get('name', None)
+
+                geom_wkb = from_shape(geom_obj, srid=4326)
                 building = OSMBuilding(
                     bounding_box=bbox_str,
-                    # building_type=building_type,
+                    osm_id=str(osm_id) if osm_id else None,
+                    name=bname if isinstance(bname, str) else None,
+                    building_type=building_type if isinstance(building_type, str) else None,
                     geom=geom_wkb
                 )
                 db.session.add(building)
@@ -65,13 +85,45 @@ def fetch_spatial_data():
             geom_obj = row.geometry
             if geom_obj is None or geom_obj.is_empty:
                 continue
+
             if isinstance(geom_obj, (LineString, MultiLineString)):
+                osm_id = row.get('osmid', None)
+                if isinstance(osm_id, list):
+                    osm_id = ','.join(str(x) for x in osm_id)
+
+                rd_name = row.get('name', None)
+                rd_type = row.get('highway', None)
+                rd_oneway = row.get('oneway', False)
+                # parse lanes
+                lanes_val = row.get('lanes', None)
+                rd_lanes = None
+                if lanes_val is not None:
+                    if isinstance(lanes_val, list):
+                        # e.g. [3,4]
+                        try:
+                            rd_lanes = sum(lanes_val) / len(lanes_val)
+                        except:
+                            rd_lanes = None
+                    elif isinstance(lanes_val, (int,float)):
+                        rd_lanes = float(lanes_val)
+                    elif isinstance(lanes_val, str):
+                        try:
+                            rd_lanes = float(lanes_val)
+                        except:
+                            rd_lanes = None
+
                 geom_wkb = from_shape(geom_obj, srid=4326)
                 road = OSMRoad(
                     bounding_box=bbox_str,
+                    osm_id=str(osm_id) if osm_id else None,
+                    name=rd_name if isinstance(rd_name, str) else None,
+                    road_type=rd_type if isinstance(rd_type, str) else None,
+                    oneway=bool(rd_oneway),
+                    lanes=rd_lanes,
                     geom=geom_wkb
                 )
                 db.session.add(road)
+
 
         db.session.commit()
 
@@ -89,7 +141,7 @@ def fetch_spatial_data():
             },
             "demographic": demographic_info
         }
-        return jsonify(combined)
+        return jsonify(combined), 200
 
     except Exception as e:
         db.session.rollback()

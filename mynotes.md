@@ -60,3 +60,40 @@ loader*\* / geocode_settings*\* 表主要是内部配置和元数据，让 geoco
 这些 tiger._ 表是美国国家级地理数据(行政区域、道路地址等) + 地理编码功能；
 如果你只需要在数据库中存自己的建筑/道路数据，可以在 public schema 下建表(或者你自定义 schema)，不必碰 tiger._。
 如果你想用地址解析(给出字符串“1600 Pennsylvania Ave, Washington DC”→ 数据库里找出坐标), tiger geocoder 就派上用场。
+
+```
+这是 backend\routes\agent_routes.py：
+
+这是 backend\routes\chat_routes.py：
+
+这是 backend\routes\design_data_routes.py
+
+这是 backend\routes\geo_routes.py
+
+这是 backend\routes\project_routes.py
+
+这是 backend\routes\spatial_routes.py
+
+这是 backend\services\agent_generation.py
+
+这是 backend\services\census_service.py
+
+这是 backend\services\chat_service.py
+
+这是 backend\services\data_processing.py
+
+这是 backend\services\llm_service.py
+
+这是 backend\services\us_counties.py
+
+这是 backend\app.py
+
+这是 backend\config.py
+
+这是 backend\Dockerfile
+
+这是 backend\models.py
+
+这是 backend\requirements.txt：
+
+```

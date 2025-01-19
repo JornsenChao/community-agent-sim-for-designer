@@ -18,13 +18,15 @@ def create_app():
     # app.config.from_object(config)
     app.config['SQLALCHEMY_DATABASE_URI'] = config.SQLALCHEMY_DATABASE_URI
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+    app.config['SQLALCHEMY_ECHO'] = True
     CORS(app)
     db.init_app(app)
     
     
     with app.app_context():
-        # 如果表不存在，则创建
-        db.create_all()
+        db.drop_all()  # 会清空所有表
+        db.create_all()  # 再重新创建
+        print("Database reset successfully!")
     
     # 注册路由蓝图
     app.register_blueprint(agent_bp, url_prefix='/agents')
@@ -36,7 +38,7 @@ def create_app():
     
     @app.route('/')
     def index():
-        return {"message": "Hello from Flask + PostGIS!"}
+        return {"message": "Hello from Flask + PostGIS, OSM + Census!"}
     
     return app
 
