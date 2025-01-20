@@ -12,7 +12,7 @@ from routes.design_data_routes import design_data_bp
 from routes.spatial_routes import spatial_bp
 from routes.project_routes import project_bp
 from routes.geo_routes import geo_bp
-
+from routes.test_routes import test_bp
 def create_app():
     app = Flask(__name__)
     # app.config.from_object(config)
@@ -35,6 +35,7 @@ def create_app():
     app.register_blueprint(spatial_bp, url_prefix='/spatial')
     app.register_blueprint(project_bp, url_prefix='/project')
     app.register_blueprint(geo_bp, url_prefix="/geo")
+    app.register_blueprint(test_bp, url_prefix='/test')
     
     @app.route('/')
     def index():

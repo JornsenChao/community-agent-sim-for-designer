@@ -3,9 +3,9 @@
 from flask import Blueprint, request, jsonify
 import osmnx as ox
 import geopandas as gpd
-from shapely.geometry import box, MultiPolygon, Polygon, MultiLineString, LineString
+from shapely.geometry import shape, box, MultiPolygon, Polygon, MultiLineString, LineString
 from geoalchemy2.shape import from_shape
-from models import db, OSMBuilding, OSMRoad
+from models import db, Project, OSMBuilding, OSMRoad
 from services.census_service import get_demographic_for_bbox
 
 spatial_bp = Blueprint('spatial_bp', __name__)
@@ -155,3 +155,107 @@ def fetch_spatial_data():
     except Exception as e:
         db.session.rollback()
         return jsonify({"error": str(e)}), 500
+
+@spatial_bp.route('/setBoundary', methods=['POST'])
+def set_boundary():
+    """
+    前端传 { projectId, geometry: GeoJSON } 
+    geometry 可能是多边形(用户画的), 
+    or bounding box => 也可转成 polygon
+    后端存到Project表 boundary_geom字段
+    然后再自动调用 fetch OSM & census data
+    """
+
+    data = request.json
+    project_id = data.get('projectId')
+    geom_data = data.get('geometry')
+
+    if not project_id or not geom_data:
+        return jsonify({"error": "Missing projectId or geometry"}), 400
+
+    proj = Project.query.get(project_id)
+    if not proj:
+        return jsonify({"error": "Project not found"}), 404
+
+    # 1) 把前端传来的 GeoJSON 解析成 shapely
+    boundary_data = geom_data
+    if boundary_data.get("type") == "Feature":
+        boundary_data = boundary_data.get("geometry")
+    boundary_shp = shape(boundary_data)  # polygon or multipolygon
+    if isinstance(boundary_shp, Polygon):
+        boundary_shp = MultiPolygon([boundary_shp])
+
+    boundary_wkb = from_shape(boundary_shp, srid=4326)
+    proj.boundary_geom = boundary_wkb
+    db.session.commit()
+
+    # 2) 获取 bounding box (minx, miny, maxx, maxy)
+    minx, miny, maxx, maxy = boundary_shp.bounds
+
+    # 3) 调用 OSMnx 抓建筑、道路 (跟你的 fetch_spatial_data 类似)
+    #    先删除本 project 下以前抓过的数据(若有)
+    bbox_str = f"{minx},{miny},{maxx},{maxy}"
+    OSMBuilding.query.filter_by(bounding_box=bbox_str).delete()
+    OSMRoad.query.filter_by(bounding_box=bbox_str).delete()
+    db.session.commit()
+
+    # roads
+    region_polygon = boundary_shp
+    G = ox.graph_from_polygon(region_polygon, network_type='drive')
+    edges_gdf = ox.graph_to_gdfs(G, nodes=False, edges=True)
+
+    # buildings
+    tags = {"building": True}
+    buildings_gdf = ox.geometries_from_polygon(region_polygon, tags)
+
+    # Insert building data
+    building_count = 0
+    for idx, row in buildings_gdf.iterrows():
+        geom_obj = row.geometry
+        if geom_obj is None or geom_obj.is_empty:
+            continue
+        if isinstance(geom_obj, Polygon):
+            geom_obj = MultiPolygon([geom_obj])
+        if not isinstance(geom_obj, MultiPolygon):
+            continue
+        building_count += 1
+        building_type = row.get('building', None)
+        osm_id = row.get('osmid', None)
+        if isinstance(osm_id, list):
+            osm_id = ','.join(str(x) for x in osm_id)
+        bname = row.get('name', None)
+        geom_wkb = from_shape(geom_obj, srid=4326)
+        b = OSMBuilding(
+            bounding_box=bbox_str,
+            osm_id=str(osm_id) if osm_id else None,
+            name=bname if isinstance(bname, str) else None,
+            building_type=building_type if isinstance(building_type, str) else None,
+            geom=geom_wkb
+        )
+        db.session.add(b)
+
+    # Insert road data
+    road_count = 0
+    for idx, row in edges_gdf.iterrows():
+        geom_obj = row.geometry
+        if geom_obj is None or geom_obj.is_empty:
+            continue
+        road_count += 1
+        # 先省略跟原先相同的处理...
+        # ...
+        # 省略: 你可以和之前 /fetch 里写的保持一致
+
+    db.session.commit()
+
+    # 4) 调Census -> bounding box
+    demographic_info = get_demographic_for_bbox(minx, miny, maxx, maxy, method="weighted")
+
+    result = {
+        "osmData": {
+            "buildings": building_count,
+            "roads": road_count
+        },
+        "demographic": demographic_info
+    }
+
+    return jsonify({"status": "ok", "projectId": project_id, "boundary": geom_data, "analysis": result})

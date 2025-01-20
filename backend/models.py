@@ -3,7 +3,7 @@
 
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy import Column, Integer, String
+from sqlalchemy import Column, Integer, String, ForeignKey
 from geoalchemy2 import Geometry
 
 db = SQLAlchemy()
@@ -38,3 +38,44 @@ class OSMRoad(db.Model):
     oneway = db.Column(db.Boolean, nullable=True)
     lanes = db.Column(db.Float, nullable=True)  # if numeric
     geom = db.Column(Geometry('MULTILINESTRING', srid=4326), nullable=False)
+
+class Project(db.Model):
+    """
+    新增Project模型，替代你之前用dict存储. 
+    """
+    __tablename__ = 'projects'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    name = db.Column(db.String(200), nullable=False)
+    description = db.Column(db.Text, nullable=True)
+    location = db.Column(db.String(200), nullable=True)
+    boundary_geom = db.Column(Geometry('MULTIPOLYGON', srid=4326), nullable=True)
+    # 你也可以记录 bounding box 或 other details
+
+class Agent(db.Model):
+    """
+    用于存储每个Agent的地理与属性信息
+    """
+    __tablename__ = 'agents'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+
+    project_id = db.Column(db.Integer, ForeignKey('projects.id'), nullable=False)
+    # 所属项目
+
+    # 地理位置: 住址, 工作(或通勤)地址
+    home_geom = db.Column(Geometry('POINT', srid=4326), nullable=True)
+    work_geom = db.Column(Geometry('POINT', srid=4326), nullable=True)
+
+    # Census tract id
+    home_tract = db.Column(db.String(50), nullable=True)
+    work_tract = db.Column(db.String(50), nullable=True)
+
+    # AI生成的属性
+    name = db.Column(db.String(100), nullable=True)
+    age = db.Column(db.Integer, nullable=True)
+    occupation = db.Column(db.String(100), nullable=True)
+    background_story = db.Column(db.Text, nullable=True)
+
+    # 还可加更多字段: income, dailyRoutine, etc
+
+    def __repr__(self):
+        return f"<Agent id={self.id} project_id={self.project_id}>"

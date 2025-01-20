@@ -39,10 +39,10 @@ def generate_agent_with_llm(prompt_text):
         response = client.chat.completions.create(
             model="gpt-3.5-turbo",  
             messages=[
-                {"role": "system", "content": "You are a social character generator, and help architect, landscape architects, or urban planners to create a dynamic range of social characters that might use their projects."},
+                {"role": "system", "content": "You are a helpful AI that generates agent background stories. YOu will help architect, landscape architects, or urban planners to create a dynamic range of social characters that might use their projects."},
                 {"role": "user", "content": prompt_text}
             ],
-            max_tokens=512,
+            max_tokens=1024,
             temperature=0.9,   # 提高一点temperature，让模型输出更多样化
             top_p=0.9,         # 或者结合 top_p
         )

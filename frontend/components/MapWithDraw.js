@@ -1,16 +1,12 @@
 // components/MapWithDraw.js
-
 import React, { useRef } from 'react';
 import { MapContainer, TileLayer, FeatureGroup } from 'react-leaflet';
-
-// (1) 导入 leaflet 基础样式 + leaflet-draw 样式
+import { EditControl } from 'react-leaflet-draw';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet-draw/dist/leaflet.draw.css';
+import { GeoJSON } from 'react-leaflet';
 
-// (2) 再导入 react-leaflet-draw
-import { EditControl } from 'react-leaflet-draw';
-console.log({ FeatureGroup, EditControl });
-export default function MapWithDraw({ onBoundsChange }) {
+export default function MapWithDraw({ onGeometryCreated }) {
   const featureGroupRef = useRef(null);
 
   const center = [37.75, -122.3];
@@ -20,27 +16,11 @@ export default function MapWithDraw({ onBoundsChange }) {
     const layerType = e.layerType;
     const layer = e.layer;
 
-    if (layerType === 'rectangle') {
-      const bounds = layer.getBounds();
-      const sw = bounds.getSouthWest();
-      const ne = bounds.getNorthEast();
+    // 将layer转为GeoJSON
+    const geojsonFeature = layer.toGeoJSON(); // {type: 'Feature', geometry: {...}}
+    const geometryOnly = geojsonFeature.geometry; // {type: 'Polygon', coordinates: [...]}
 
-      const minx = sw.lng;
-      const miny = sw.lat;
-      const maxx = ne.lng;
-      const maxy = ne.lat;
-
-      onBoundsChange && onBoundsChange({ minx, miny, maxx, maxy });
-    }
-  };
-
-  const onEdited = (e) => {
-    // 如果只允许画一个矩形，可以在这里更新 onBoundsChange
-  };
-
-  const onDeleted = (e) => {
-    // 如果把矩形删了，就清空
-    onBoundsChange && onBoundsChange(null);
+    onGeometryCreated && onGeometryCreated(geometryOnly);
   };
 
   return (
@@ -59,19 +39,17 @@ export default function MapWithDraw({ onBoundsChange }) {
           position="topleft"
           draw={{
             rectangle: true,
-            polygon: false,
+            polygon: true, // 支持多边形
             circle: false,
             circlemarker: false,
             marker: false,
             polyline: false,
           }}
           edit={{
-            edit: true,
-            remove: true,
+            edit: false,
+            remove: false,
           }}
           onCreated={onCreated}
-          onEdited={onEdited}
-          onDeleted={onDeleted}
         />
       </FeatureGroup>
     </MapContainer>

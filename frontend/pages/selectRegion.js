@@ -1,9 +1,10 @@
+// pages/selectRegion.js
 import dynamic from 'next/dynamic';
 import { useRouter } from 'next/router';
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 
-// 用 dynamic 来在前端渲染 MapWithDraw
+// 这个组件是你已有的, 用来在地图上绘制多边形/矩形
 const MapWithDraw = dynamic(() => import('../components/MapWithDraw'), {
   ssr: false,
 });
@@ -11,7 +12,7 @@ const MapWithDraw = dynamic(() => import('../components/MapWithDraw'), {
 export default function SelectRegionPage() {
   const router = useRouter();
   const [projectId, setProjectId] = useState('');
-  const [bounds, setBounds] = useState(null);
+  const [geometry, setGeometry] = useState(null);
   const [result, setResult] = useState(null);
 
   useEffect(() => {
@@ -20,47 +21,39 @@ export default function SelectRegionPage() {
     }
   }, [router.query.projectId]);
 
-  const handleFetchData = async () => {
-    if (!bounds) {
-      alert('请先在地图上画一个矩形区域');
+  const handleSetBoundary = async () => {
+    if (!geometry) {
+      alert('请先在地图上画多边形/矩形');
       return;
     }
-    const { minx, miny, maxx, maxy } = bounds;
     try {
-      const res = await axios.post('http://localhost:5000/spatial/fetch', {
-        minx,
-        miny,
-        maxx,
-        maxy,
+      const res = await axios.post(
+        'http://localhost:5000/spatial/setBoundary',
+        {
+          projectId,
+          geometry,
+        }
+      );
+      setResult(res.data.analysis);
+
+      // 接下来跳转到下一步
+      router.push({
+        pathname: '/markAgents',
+        query: { projectId },
       });
-      setResult(res.data);
     } catch (err) {
-      console.error(err);
       alert('Error: ' + err.message);
     }
   };
 
   return (
     <div style={{ padding: 20 }}>
-      <h2>选择区域: 获取 OSM + Census数据 (ProjectID: {projectId})</h2>
-
+      <h2>2) 选择区域: (ProjectID: {projectId})</h2>
+      <p>在地图上绘制你的Project Boundary, 然后点击 "确定区域"。</p>
       <div style={{ width: '100%', height: '500px', marginBottom: '20px' }}>
-        <MapWithDraw onBoundsChange={(b) => setBounds(b)} />
+        <MapWithDraw onGeometryCreated={(geo) => setGeometry(geo)} />
       </div>
-
-      <button onClick={handleFetchData}>获取数据</button>
-
-      {bounds && (
-        <div style={{ marginTop: 10 }}>
-          <strong>选取区域 Bounds:</strong>
-          <p>
-            Min X: {bounds.minx}, Max X: {bounds.maxx}
-          </p>
-          <p>
-            Min Y: {bounds.miny}, Max Y: {bounds.maxy}
-          </p>
-        </div>
-      )}
+      <button onClick={handleSetBoundary}>确定区域</button>
 
       {result && (
         <div style={{ marginTop: 20 }}>

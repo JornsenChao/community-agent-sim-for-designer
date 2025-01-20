@@ -1,6 +1,7 @@
 from flask import Blueprint, request, jsonify
 from services.data_processing import store_project_info, store_demographic_info
 from services.llm_service import refine_project_description
+from models import db, Project
 
 project_bp = Blueprint('project_bp', __name__)
 
@@ -19,10 +20,18 @@ def create_project():
     refined_text = refine_project_description(project_desc, project_location)
 
     # 存入数据库或内存(此处示例用 services.data_processing 里的一个函数)
-    project_id = store_project_info(project_name, refined_text, project_location)
+    # project_id = store_project_info(project_name, refined_text, project_location)
+    # 写入数据库
+    new_proj = Project(
+        name=project_name,
+        description=refined_text,
+        location=project_location
+    )
+    db.session.add(new_proj)
+    db.session.commit()
 
     return jsonify({
-        "projectId": project_id,
+        "projectId": new_proj.id,
         "projectName": project_name,
         "refinedDesc": refined_text
     })

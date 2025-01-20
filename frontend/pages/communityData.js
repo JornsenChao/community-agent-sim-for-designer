@@ -17,10 +17,13 @@ export default function CommunityDataPage() {
         population: population,
       };
 
-      // 调用后端 /agents/generate
-      const res = await axios.post('http://localhost:5000/agents/generate', {
-        communityData,
-      });
+      // 调用后端 /agents/generateDetailed
+      const res = await axios.post(
+        'http://localhost:5000/agents/generateDetailed',
+        {
+          communityData,
+        }
+      );
 
       setMessage('社区数据提交成功，已生成 Agents!');
       console.log('Agents:', res.data.agents);
