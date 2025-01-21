@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify
 from models import db, Agent
-from services.agent_generation import generate_agents
+# from services.agent_generation import generate_agents
 from services.data_processing import get_project_info, get_demographic_info
 from services.agent_generation import  generate_agent_desc_with_demo
 from services.census_service import get_tract_for_point
@@ -10,68 +10,68 @@ from sqlalchemy import update
 
 agent_bp = Blueprint('agent_bp', __name__)
 
-@agent_bp.route('/generate', methods=['POST'])
-def generate():
-    """
-    批量对数据库里那些Agent补充信息
-    POST { projectId } 
-    后端:
-     1) 查projectId下所有agent (home_tract, work_tract)
-     2) 调LLM, 结合这些 tract info 生成 name/age/desc
-     3) 更新DB
-     4) 返回agent列表
-    """
-    data = request.json
-    project_id = data.get('projectId')
-    if not project_id:
-        return jsonify({"error": "no projectId"}), 400
+# @agent_bp.route('/generate', methods=['POST'])
+# def generate():
+#     """
+#     批量对数据库里那些Agent补充信息
+#     POST { projectId } 
+#     后端:
+#      1) 查projectId下所有agent (home_tract, work_tract)
+#      2) 调LLM, 结合这些 tract info 生成 name/age/desc
+#      3) 更新DB
+#      4) 返回agent列表
+#     """
+#     data = request.json
+#     project_id = data.get('projectId')
+#     if not project_id:
+#         return jsonify({"error": "no projectId"}), 400
 
-    from models import Agent
-    agents = Agent.query.filter_by(project_id=project_id).all()
-    if not agents:
-        return jsonify({"agents": [], "message": "No Agents found"}), 200
+#     from models import Agent
+#     agents = Agent.query.filter_by(project_id=project_id).all()
+#     if not agents:
+#         return jsonify({"agents": [], "message": "No Agents found"}), 200
 
-    # 调用你原services.agent_generation里的一些逻辑:
-    from services.agent_generation import generate_single_agent_desc
-    updated_list = []
-    for ag in agents:
-        # 这里仅示例, 你可以写更完整Prompt:
-        llm_result = generate_single_agent_desc(
-            home_tract=ag.home_tract,
-            work_tract=ag.work_tract
-        )
-        # 假设返回一个dict:
-        ag.name = llm_result.get('name')
-        ag.age = llm_result.get('age')
-        ag.occupation = llm_result.get('occupation')
-        ag.background_story = llm_result.get('background_story')
-        db.session.add(ag)
-        updated_list.append({
-            "id": ag.id,
-            "name": ag.name,
-            "age": ag.age,
-            "occupation": ag.occupation,
-            "background_story": ag.background_story
-        })
-    db.session.commit()
+#     # 调用你原services.agent_generation里的一些逻辑:
+#     from services.agent_generation import generate_single_agent_desc
+#     updated_list = []
+#     for ag in agents:
+#         # 这里仅示例, 你可以写更完整Prompt:
+#         llm_result = generate_single_agent_desc(
+#             home_tract=ag.home_tract,
+#             work_tract=ag.work_tract
+#         )
+#         # 假设返回一个dict:
+#         ag.name = llm_result.get('name')
+#         ag.age = llm_result.get('age')
+#         ag.occupation = llm_result.get('occupation')
+#         ag.background_story = llm_result.get('background_story')
+#         db.session.add(ag)
+#         updated_list.append({
+#             "id": ag.id,
+#             "name": ag.name,
+#             "age": ag.age,
+#             "occupation": ag.occupation,
+#             "background_story": ag.background_story
+#         })
+#     db.session.commit()
 
-    return jsonify({"agents": updated_list})
+#     return jsonify({"agents": updated_list})
 
-@agent_bp.route('/preview', methods=['POST'])
-def preview():
-    """
-    用户可在此微调Agent属性
-    比如前端传 { agentId, newAge, newIncome... }
-    然后更新后再返回最新的agent数据
-    这里只做示例
-    """
-    data = request.json
-    agent_id = data.get('agentId', '')
-    updated_props = data.get('updatedProps', {})
+# @agent_bp.route('/preview', methods=['POST'])
+# def preview():
+#     """
+#     用户可在此微调Agent属性
+#     比如前端传 { agentId, newAge, newIncome... }
+#     然后更新后再返回最新的agent数据
+#     这里只做示例
+#     """
+#     data = request.json
+#     agent_id = data.get('agentId', '')
+#     updated_props = data.get('updatedProps', {})
     
-    # 此处仅演示, 实际你可能在数据库/内存中更新
-    # ...
-    return jsonify({"status": "ok", "updatedAgentId": agent_id, "newProps": updated_props})
+#     # 此处仅演示, 实际你可能在数据库/内存中更新
+#     # ...
+#     return jsonify({"status": "ok", "updatedAgentId": agent_id, "newProps": updated_props})
 
 @agent_bp.route('/locate', methods=['POST'])
 def locate_agent():
@@ -140,7 +140,7 @@ def list_agents():
         if ag.work_geom:
             shp2 = to_shape(ag.work_geom)
             work_geom = mapping(shp2)
-
+        work_tract = None
         results.append({
             "id": ag.id,
             "projectId": ag.project_id,
@@ -149,7 +149,9 @@ def list_agents():
             "occupation": ag.occupation,
             "background_story": ag.background_story,
             "home_geom": home_geom,
-            "work_geom": work_geom
+            "work_geom": work_geom,
+            "home_tract":ag.home_tract,
+            "work_tract":ag.work_tract
         })
     return jsonify({"agents": results})
 
@@ -185,7 +187,10 @@ def generate_detailed():
     for ag in agents:
         updated_results.append({
             "id": ag.id,
+            "name": ag.name,
+            "age": ag.age,
             "home_tract": ag.home_tract,
+            "occupation": ag.occupation,
             "background_story": ag.background_story
         })
 

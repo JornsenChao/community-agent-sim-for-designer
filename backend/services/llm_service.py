@@ -30,6 +30,7 @@ def refine_project_description(project_desc, location):
         print("OpenAI调用失败:", e)
         return project_desc  # 如果失败，就返回原文
 
+# 最底层的“LLM 调用函数”
 def generate_agent_with_llm(prompt_text):
     """
     用LLM生成一个角色介绍

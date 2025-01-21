@@ -183,3 +183,164 @@ loader*\* / geocode_settings*\* 表主要是内部配置和元数据，让 geoco
 这是 backend\requirements.txt：
 
 ```
+
+```
+这是 backend\routes\agent_routes.py：
+
+
+这是 backend\routes\chat_routes.py：
+
+
+这是 backend\routes\design_data_routes.py：
+
+
+这是 backend\routes\geo_routes.py
+
+
+这是 backend\routes\project_routes.py
+
+
+这是 backend\routes\spatial_routes.py
+
+
+这是 backend\services\agent_generation.py
+
+
+这是 backend\services\census_service.py
+
+
+这是 backend\services\chat_service.py
+
+
+这是 backend\services\data_processing.py
+
+
+这是 backend\services\llm_service.py
+
+
+这是 backend\services\us_counties.py
+
+
+这是 backend\app.py
+
+
+这是 backend\config.py
+
+
+这是 backend\Dockerfile
+
+
+这是 backend\models.py
+
+
+这是 backend\requirements.txt：
+
+```
+
+```
+这是 frontend\components\AgentCard.js：
+
+
+
+
+这是 frontend\components\AgentMap.js：
+
+
+
+
+
+
+这是 frontend\components\ChatWindow.js：
+
+
+
+
+
+
+这是 frontend\components\MapWithDraw.js：
+
+
+
+
+
+
+这是 frontend\components\MarkMap.js:
+
+
+
+
+
+
+这是 frontend\pages\agentPreview.js：
+
+
+
+
+
+
+这是 frontend\pages\chat.js：
+
+
+
+
+
+
+这是 frontend\pages\communityData.js：
+
+
+
+
+
+
+这是 frontend\pages\createProject.js：
+
+
+
+
+
+
+这是 frontend\pages\demographic.js：
+
+
+
+
+
+
+这是 frontend\pages\designInfo.js：
+
+
+
+
+
+
+
+这是 frontend\pages\index.js：
+
+
+
+
+
+
+这是 frontend\pages\markAgents.js：
+
+
+
+
+
+
+这是 frontend\pages\selectRegion.js：
+
+
+
+
+
+
+这是 frontend\styles\globals.css:
+
+
+
+
+
+
+这是 frontend\package.json：
+```

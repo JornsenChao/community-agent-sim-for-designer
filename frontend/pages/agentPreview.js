@@ -50,7 +50,14 @@ export default function AgentPreviewPage() {
           key={agent.id}
           agent={{
             id: agent.id,
-            desc: `姓名: ${agent.name}\n年龄:${agent.age}\n职业:${agent.occupation}\n故事:${agent.background_story}`,
+            // all: agent,
+            // desc: `姓名: ${agent.name}\n年龄:${agent.age}\n职业:${agent.occupation}\n故事:${agent.background_story}`,
+            name: agent.name,
+            age: agent.age,
+            occupation: agent.occupation,
+            background_story: agent.background_story,
+            home_tract: agent.home_tract,
+            work_tract: agent.work_tract,
           }}
           onUpdate={() => handlePreviewUpdate(agent.id)}
         />
