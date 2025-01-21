@@ -204,13 +204,14 @@ NAME: {agent.name or "unknown"}
 AGE: {agent.age or "30"}
 OCCUPATION: {agent.occupation or "unemployed"}
 
-Now please refine or update the agent to reflect local demographics. 
-Output ONLY valid JSON in the format:
+Now, refine the agent's background_story to incorporate at least 8 relevant data points from above, within which all the communting information must be included. 
+Explain how these local demographics or commute patterns affect daily routines or personal perspective. 
+Output only valid JSON in the format:
 {{
   "name": "...",
   "age": 25,
   "occupation": "...",
-  "background_story": "..."
+  "background_story": "...",
 }}
 All fields are mandatory. 
 Make sure 'occupation' is consistent with the local context, but do not lock it to 'urban planner' or 'landscape architect'. 
