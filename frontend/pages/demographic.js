@@ -1,6 +1,7 @@
 import { useRouter } from 'next/router';
 import { useEffect, useState } from 'react';
 import axios from 'axios';
+import { apiClient } from '../utils/api';
 
 export default function DemographicPage() {
   const router = useRouter();
@@ -27,13 +28,10 @@ export default function DemographicPage() {
         // assistedMobilityPercent,
         notes,
       };
-      const res = await axios.post(
-        'http://localhost:5000/project/demographic',
-        {
-          projectId,
-          demographic: demographicData,
-        }
-      );
+      const res = await apiClient.post('/project/demographic', {
+        projectId,
+        demographic: demographicData,
+      });
       console.log('Demographic store result:', res.data);
 
       // 跳转到下一步: 生成 Agent

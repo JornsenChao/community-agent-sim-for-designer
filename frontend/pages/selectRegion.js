@@ -3,6 +3,7 @@ import dynamic from 'next/dynamic';
 import { useRouter } from 'next/router';
 import { useState, useEffect } from 'react';
 import axios from 'axios';
+import { apiClient } from '../utils/api';
 
 // 这个组件是你已有的, 用来在地图上绘制多边形/矩形
 const MapWithDraw = dynamic(() => import('../components/MapWithDraw'), {
@@ -14,6 +15,7 @@ export default function SelectRegionPage() {
   const [projectId, setProjectId] = useState('');
   const [geometry, setGeometry] = useState(null);
   const [result, setResult] = useState(null);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (router.query.projectId) {
@@ -26,17 +28,16 @@ export default function SelectRegionPage() {
       alert('请先在地图上画多边形/矩形');
       return;
     }
+    setLoading(true);
     try {
-      const res = await axios.post(
-        'http://localhost:5000/spatial/setBoundary',
-        {
-          projectId,
-          geometry,
-        }
-      );
+      const res = await apiClient.post('/spatial/setBoundary', {
+        projectId,
+        geometry,
+      });
       setResult(res.data.analysis);
 
-      // 接下来跳转到下一步
+      // 这里说明成功抓取了 OSMnx + Census
+      // 可能会耗时，因此前端要给提示
       router.push({
         pathname: '/markAgents',
         query: { projectId },
@@ -44,6 +45,7 @@ export default function SelectRegionPage() {
     } catch (err) {
       alert('Error: ' + err.message);
     }
+    setLoading(false);
   };
 
   return (
@@ -53,7 +55,9 @@ export default function SelectRegionPage() {
       <div style={{ width: '100%', height: '500px', marginBottom: '20px' }}>
         <MapWithDraw onGeometryCreated={(geo) => setGeometry(geo)} />
       </div>
-      <button onClick={handleSetBoundary}>确定区域</button>
+      <button onClick={handleSetBoundary} disabled={loading}>
+        {loading ? '处理中...' : '确定区域'}
+      </button>
 
       {result && (
         <div style={{ marginTop: 20 }}>

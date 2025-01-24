@@ -7,6 +7,7 @@
 */
 import { useState } from 'react';
 import axios from 'axios';
+import { apiClient } from '../utils/api';
 import ChatWindow from '../components/ChatWindow';
 
 export default function ChatPage() {
@@ -16,7 +17,7 @@ export default function ChatPage() {
 
   const handleSend = async () => {
     try {
-      const res = await axios.post('http://localhost:5000/chat/ask', {
+      const res = await apiClient.post('/chat/ask', {
         agentId,
         message: userMessage,
       });

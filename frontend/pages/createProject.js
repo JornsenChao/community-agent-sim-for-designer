@@ -1,6 +1,7 @@
 // pages/createProject.js
 import { useState } from 'react';
 import axios from 'axios';
+import { apiClient } from '../utils/api';
 import { useRouter } from 'next/router';
 
 export default function CreateProjectPage() {
@@ -11,7 +12,7 @@ export default function CreateProjectPage() {
 
   const handleCreate = async () => {
     try {
-      const res = await axios.post('http://localhost:5000/project/create', {
+      const res = await apiClient.post('/project/create', {
         projectName,
         projectDesc,
         projectLocation,

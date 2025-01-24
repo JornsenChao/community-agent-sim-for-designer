@@ -1,5 +1,6 @@
 import { useRouter } from 'next/router';
 import { useState, useEffect } from 'react';
+import { apiClient } from '../utils/api'; // <-- 改用这个
 import axios from 'axios';
 import AgentCard from '../components/AgentCard';
 
@@ -19,9 +20,7 @@ export default function AgentPreviewPage() {
   const fetchAgents = async (pid) => {
     setLoading(true);
     try {
-      const res = await axios.get(
-        `http://localhost:5000/agents/list?projectId=${pid}`
-      );
+      const res = await apiClient.get(`/agents/list?projectId=${pid}`);
       setAgents(res.data.agents);
     } catch (err) {
       alert('获取Agent失败:' + err.message);
@@ -32,7 +31,7 @@ export default function AgentPreviewPage() {
   const handlePreviewUpdate = async (agentId) => {
     // 你可以在这里调用 /agents/preview 之类路由更新Agent
     // 此处仅示例:
-    const res = await axios.post('http://localhost:5000/agents/preview', {
+    const res = await apiClient.post('/agents/preview', {
       agentId,
       updatedProps: { age: 40 },
     });

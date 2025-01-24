@@ -5,6 +5,7 @@
 */
 import { useState } from 'react';
 import axios from 'axios';
+import { apiClient } from '../utils/api';
 
 export default function CommunityDataPage() {
   const [population, setPopulation] = useState('');
@@ -13,17 +14,14 @@ export default function CommunityDataPage() {
   const handleSubmit = async () => {
     try {
       // 示例: 构造提交的 JSON
-      const communityData = {
+      const demographicData = {
         population: population,
       };
 
       // 调用后端 /agents/generateDetailed
-      const res = await axios.post(
-        'http://localhost:5000/agents/generateDetailed',
-        {
-          communityData,
-        }
-      );
+      const res = await apiClient.post('/agents/generateDetailed', {
+        demographicData,
+      });
 
       setMessage('社区数据提交成功，已生成 Agents!');
       console.log('Agents:', res.data.agents);

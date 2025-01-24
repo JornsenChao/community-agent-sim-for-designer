@@ -5,6 +5,7 @@
 */
 import { useState } from 'react';
 import axios from 'axios';
+import { apiClient } from '../utils/api';
 
 export default function DesignInfoPage() {
   const [description, setDescription] = useState('');
@@ -18,7 +19,7 @@ export default function DesignInfoPage() {
         mainFeature,
       };
 
-      const res = await axios.post('http://localhost:5000/design/upload', {
+      const res = await apiClient.post('/design/upload', {
         designInfo,
       });
 

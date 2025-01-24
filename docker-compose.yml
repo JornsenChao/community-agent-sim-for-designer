@@ -34,6 +34,29 @@ services:
       DB_USER: 'myuser'
       DB_PASS: 'mypassword'
 
+  frontend:
+    build: ./frontend
+    container_name: my_frontend
+    restart: always
+    # 如果你用 Next.js / React 端口3000
+    ports:
+      - '3000:3000'
+    depends_on:
+      - web
+    environment:
+      # 方式A: 让前端容器直接访问后端容器的服务名"my_flask:5000"：
+      NEXT_PUBLIC_API_BASE_URL: 'http://my_flask:5000'
+
+      # 方式B: 如果你想让前端容器通过宿主机网络来访问:
+      #   - 在 Docker Desktop (Mac/Win) 上，可用 host.docker.internal:5000 代替 localhost
+      #   - 在 Linux 原生 Docker 上，localhost不会指向宿主机，需要别的配置。
+      # NEXT_PUBLIC_API_BASE_URL: 'http://localhost:5000'
+
+      # 注: 如果你只是本地跑Flask，不用docker跑web，
+      # 也可以写 'http://localhost:5000' 让前端容器访问宿主机的Flask。
+      # 前提是：Docker在Mac/Win用docker desktop, "localhost"可被识别为宿主机，
+      # 或者你改为 'http://host.docker.internal:5000'。
+
 volumes:
   # 定义一个名为 postgres_data 的 Docker挂载点，用于持久化数据库内容。
   postgres_data:

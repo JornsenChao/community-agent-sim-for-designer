@@ -20,7 +20,7 @@ def _get_county_population(state_fips, county_fips):
         "key": config.CENSUS_API_KEY
     }
     try:
-        r = requests.get(CENSUS_BASE_URL, params=params, timeout=10)
+        r = requests.get(CENSUS_BASE_URL, params=params, timeout=60)
         data = r.json()
         if len(data) > 1:
             row = data[1]
@@ -129,7 +129,7 @@ def get_tract_for_point(lat, lng):
         "format": "json"
     }
     try:
-        r = requests.get(CENSUS_GEOCODER_URL, params=params, timeout=10)
+        r = requests.get(CENSUS_GEOCODER_URL, params=params, timeout=60)
         data = r.json()
 
         # 打印原始响应, 以便调试
@@ -246,7 +246,7 @@ def get_tract_demographics(state_fips, county_fips, tract_fips):
     }
 
     try:
-        r = requests.get(base_url, params=params, timeout=15)
+        r = requests.get(base_url, params=params, timeout=50)
         data = r.json()
 
         if len(data) < 2:

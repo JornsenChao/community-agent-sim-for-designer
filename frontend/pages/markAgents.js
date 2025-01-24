@@ -3,6 +3,7 @@ import dynamic from 'next/dynamic';
 import { useRouter } from 'next/router';
 import { useState, useEffect } from 'react';
 import axios from 'axios';
+import { apiClient } from '../utils/api';
 
 // 改成一个叫 AgentMap 的组件, 我们会定义在 components/AgentMap.js
 const AgentMap = dynamic(() => import('../components/AgentMap'), {
@@ -37,7 +38,7 @@ export default function MarkAgentsPage() {
       const workCoord = { lat, lng };
       // 调用后端 /agents/locate
       try {
-        const res = await axios.post('http://localhost:5000/agents/locate', {
+        const res = await apiClient.post('/agents/locate', {
           projectId,
           home: homeCoord,
           work: workCoord,
@@ -66,12 +67,9 @@ export default function MarkAgentsPage() {
   // 让后端给这些Agent生成 LLM描述
   const handleGenerateAll = async () => {
     try {
-      const res = await axios.post(
-        'http://localhost:5000/agents/generateDetailed',
-        {
-          projectId,
-        }
-      );
+      const res = await apiClient.post('/agents/generateDetailed', {
+        projectId,
+      });
       console.log('Generate result:', res.data);
       // 跳转到 agentPreview
       router.push({
