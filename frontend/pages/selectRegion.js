@@ -14,8 +14,10 @@ export default function SelectRegionPage() {
   const router = useRouter();
   const [projectId, setProjectId] = useState('');
   const [geometry, setGeometry] = useState(null);
-  const [result, setResult] = useState(null);
+  // const [result, setResult] = useState(null);
+  const [analysis, setAnalysis] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
 
   useEffect(() => {
     if (router.query.projectId) {
@@ -29,23 +31,36 @@ export default function SelectRegionPage() {
       return;
     }
     setLoading(true);
+    setErrorMsg('');
+    setAnalysis(null);
     try {
       const res = await apiClient.post('/spatial/setBoundary', {
         projectId,
         geometry,
       });
-      setResult(res.data.analysis);
+      if (res.data.analysis) {
+        setAnalysis(res.data.analysis);
+      } else {
+        setErrorMsg('后端没有返回分析结果');
+      }
 
       // 这里说明成功抓取了 OSMnx + Census
       // 可能会耗时，因此前端要给提示
-      router.push({
-        pathname: '/markAgents',
-        query: { projectId },
-      });
+      // router.push({
+      //   pathname: '/markAgents',
+      //   query: { projectId },
+      // });
     } catch (err) {
       alert('Error: ' + err.message);
     }
     setLoading(false);
+  };
+  // 用户点击“下一步”按钮时，才进入 markAgents
+  const goNextStep = () => {
+    router.push({
+      pathname: '/markAgents',
+      query: { projectId },
+    });
   };
 
   return (
@@ -59,10 +74,24 @@ export default function SelectRegionPage() {
         {loading ? '处理中...' : '确定区域'}
       </button>
 
-      {result && (
-        <div style={{ marginTop: 20 }}>
-          <h3>后端返回:</h3>
-          <pre>{JSON.stringify(result, null, 2)}</pre>
+      {errorMsg && <p style={{ color: 'red' }}>{errorMsg}</p>}
+
+      {/* 如果analysis有值，就显示分析结果 */}
+      {analysis && (
+        <div style={{ marginTop: 20, border: '1px solid #ccc', padding: 10 }}>
+          <h3>分析结果</h3>
+          {/* 这里按你的后端返回结构展示 */}
+          <p>建筑数量: {analysis.osmData?.buildings}</p>
+          <p>道路(Edge)数量: {analysis.osmData?.roads}</p>
+          {/* 如果有人口统计 */}
+          {analysis.demographic && (
+            <pre>{JSON.stringify(analysis.demographic, null, 2)}</pre>
+          )}
+
+          {/* 给用户一个“下一步”按钮 */}
+          <button onClick={goNextStep} style={{ marginTop: 10 }}>
+            下一步: 标注 Agents
+          </button>
         </div>
       )}
     </div>

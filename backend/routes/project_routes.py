@@ -2,8 +2,33 @@ from flask import Blueprint, request, jsonify
 from services.data_processing import store_project_info, store_demographic_info
 from services.llm_service import refine_project_description
 from models import db, Project
+from geoalchemy2.shape import to_shape
+from shapely.geometry import mapping
 
 project_bp = Blueprint('project_bp', __name__)
+
+@project_bp.route('/getBoundary', methods=['GET'])
+def get_boundary():
+    project_id = request.args.get('projectId')
+    if not project_id:
+        return jsonify({"error": "Missing projectId"}), 400
+    proj = Project.query.get(project_id)
+    if not proj:
+        return jsonify({"error": "Project not found"}), 404
+
+    if proj.boundary_geom is None:
+        return jsonify({"boundary": None, "message": "No boundary set"}), 200
+    
+    # Convert boundary_geom(Geometry column) to shapely -> GeoJSON
+    from geoalchemy2.shape import to_shape
+    shp = to_shape(proj.boundary_geom)
+    # shapely => geojson dict
+    boundary_geojson = mapping(shp)
+
+    return jsonify({
+        "projectId": project_id,
+        "boundary": boundary_geojson
+    })
 
 @project_bp.route('/create', methods=['POST'])
 def create_project():

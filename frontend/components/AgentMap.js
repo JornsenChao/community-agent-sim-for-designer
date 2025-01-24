@@ -6,6 +6,8 @@ import {
   useMapEvents,
   Marker,
   Popup,
+  GeoJSON,
+  useMap,
 } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -30,7 +32,35 @@ function ClickHandler({ onClickMap }) {
   });
   return null;
 }
+// 辅助组件：一旦 boundary GeoJSON 加载完，就自动 fitBounds
+function BoundaryLayer({ boundary }) {
+  const map = useMap();
 
+  useEffect(() => {
+    if (!boundary) return;
+
+    // boundary 是 GeoJSON 对象, 形如 { type: "Polygon"|"MultiPolygon", coordinates: [...] }
+    // 构造一个 Leaflet geoJSON layer:
+    const layer = L.geoJSON(boundary);
+
+    // 让地图适应这个 polygon 范围, with some padding
+    const bounds = layer.getBounds();
+    if (bounds.isValid()) {
+      map.fitBounds(bounds, {
+        padding: [20, 20],
+      });
+    }
+    // 如果你想把 layer 保留在地图上，也可以:
+    layer.addTo(map);
+
+    // 如果只是一段 effect, 你还可以 in return() => remove layer
+    return () => {
+      map.removeLayer(layer);
+    };
+  }, [boundary, map]);
+
+  return null; // 这个组件不渲染任何DOM
+}
 // 用来生成不同颜色的 Marker icon
 function createColoredIcon(color) {
   // 这里你可以自行选择换个Marker图标底图, 也可以套leaflet-color-marker
@@ -48,7 +78,7 @@ function createColoredIcon(color) {
   });
 }
 
-export default function AgentMap({ agents, onClickMap }) {
+export default function AgentMap({ agents, onClickMap, boundary }) {
   const center = [37.75, -122.3];
   const zoomLevel = 12;
 
@@ -72,6 +102,9 @@ export default function AgentMap({ agents, onClickMap }) {
       <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
       {/* 点击事件 */}
       <ClickHandler onClickMap={onClickMap} />
+
+      {/* 当 boundary 存在时, BoundaryLayer 会把地图缩放到 polygon 范围 */}
+      {boundary && <BoundaryLayer boundary={boundary} />}
 
       {/* 为每个Agent放置2个marker: home, work */}
       {agents.map((ag, idx) => {
